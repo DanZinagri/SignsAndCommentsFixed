@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ModMetaData>
     <name>Signs and Comments Fixed Fixed</name>
-    <author>DanZinagri & Dark</author>
+    <author>DanZinagri and Dark</author>
     <packageId>Mumei.Signs</packageId>
     <description>Fixed Sign and Comments mod, using rimworld built in colorpicker instead and configured impassible buildings to not throw errors
 You don't need the original mods
