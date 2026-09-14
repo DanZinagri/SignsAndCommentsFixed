@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<LanguageData>
+  <Signs_SettingsCategory>Signs and Comments Fixed</Signs_SettingsCategory>
+  <Signs_SetSign>Sign content saved</Signs_SetSign>
+  <Signs_EditHeader>Enter the text for this sign</Signs_EditHeader>
+  <Signs_LengthWarning>Beware that many lines of text could impact performance.</Signs_LengthWarning>
+  <Signs_LengthLeft>Characters remaining:</Signs_LengthLeft>
+  <Signs_TooLong>Sign content is too long. Character limit can be adjusted or turned off in mod settings.</Signs_TooLong>
+  <Signs_ClearButton>CLEAR</Signs_ClearButton>
+  <Signs_ColorButton>Change Color</Signs_ColorButton>
+  <Signs_BlankMessage>Cannot be blank</Signs_BlankMessage>
+  <Signs_ShowGizmo>Show Label</Signs_ShowGizmo>
+  <Signs_ShowGizmo_desc>If disabled, the sign's label will only show if the sign is selected.</Signs_ShowGizmo_desc>
+  <Signs_TinyFont>Small</Signs_TinyFont>
+  <Signs_SmallFont>Medium</Signs_SmallFont>
+  <Signs_MediumFont>Large</Signs_MediumFont>
+  <Signs_SizeGismo_desc>Change the size of the label for this sign. There are 3 sizes available.</Signs_SizeGismo_desc>
+  <Signs_EditGizmo>Edit</Signs_EditGizmo>
+  <Signs_EditGizmo_desc>Edit the contents and color of this sign.</Signs_EditGizmo_desc>
+  <Signs_CopyGizmo>Copy Sign</Signs_CopyGizmo>
+  <Signs_CopyGizmo_desc>Copy this sign's settings so you can paste them onto another sign</Signs_CopyGizmo_desc>
+  <Signs_PasteGizmo>Paste Sign</Signs_PasteGizmo>
+  <Signs_PasteGizmo_desc>Overwrite this sign's content and settings with those previously copied to the clipboard</Signs_PasteGizmo_desc>
+  <Signs_ColorGizmo>Color</Signs_ColorGizmo>
+  <Signs_InspectStringPrefix>Sign Contents:</Signs_InspectStringPrefix>
+  <Signs_ToggleToolTip>Toggle visibility of sign labels. Labels can still be seen if a sign is selected.</Signs_ToggleToolTip>
+  <Signs_SettingsDisplay>Display settings</Signs_SettingsDisplay>
+  <Signs_SettingsColor>Label default color</Signs_SettingsColor>
+  <Signs_SettingsYOffset>Label vertical offset:</Signs_SettingsYOffset>
+  <Signs_SettingsAllZooms>Show sign labels at all zooms</Signs_SettingsAllZooms>
+  <Signs_SettingsAllZooms_desc>Show sign labels at any zoom level. All sign labels can be toggled off and on at any time using the speech bubble button added to the bottom right of the in-game UI.</Signs_SettingsAllZooms_desc>
+  <Signs_SettingsHideOut>Hide sign labels when zoomed out</Signs_SettingsHideOut>
+  <Signs_SettingsHideOut_desc>Only show sign labels when the camera is zoomed in closer than the below threshold</Signs_SettingsHideOut_desc>
+  <Signs_SettingsHideIn>Hide sign labels when zoomed in</Signs_SettingsHideIn>
+  <Signs_SettingsHideIn_desc>Only show sign labels when the camera is zoomed out further than the below threshold</Signs_SettingsHideIn_desc>
+  <Signs_SettingsMaxZoom>Maximum Zoom level</Signs_SettingsMaxZoom>
+  <Signs_SettingsMinZoom>Minimum Zoom level</Signs_SettingsMinZoom>
+  <Signs_SettingsAddToggle>Add label toggle button</Signs_SettingsAddToggle>
+  <Signs_SettingsToggleToolTipHidesComments>Hide comments as well as sign labels when toggle is off</Signs_SettingsToggleToolTipHidesComments>
+  <Signs_SettingsToggleToolTipHidesComments_desc></Signs_SettingsToggleToolTipHidesComments_desc>
+  <Signs_SettingsAddToggle_desc>Whether or not the button for quickly toggling all sign labels at once should be added to the UI in the bottom right. Turn this off if you want them to always be visible/invisible and your UI is cluttered.</Signs_SettingsAddToggle_desc>
+  <Signs_SettingsUseCharLimit>Use character limit</Signs_SettingsUseCharLimit>
+  <Signs_SettingsUseCharLimitWarning>ONLY DISABLE CHARACTER LIMIT IF YOU KNOW WHAT YOU'RE DOING. Very long labels will cause your game to lag and your save files to get huge.</Signs_SettingsUseCharLimitWarning>
+  <Signs_SettingsUseCharLimit_desc>BE CAREFUL DISABLING THIS. While things should still work, you can cause severe lag with huge sign contents and inflate your save file. Generally it's a good idea to leave this on.</Signs_SettingsUseCharLimit_desc>
+  <Signs_SettingsCachedLabels>Cached label rendering</Signs_SettingsCachedLabels>
+  <Signs_SettingsCachedLabels_desc>Draw sign text from a cached mesh instead of laying it out every frame. Much cheaper with many signs. Turn off to compare against the original rendering if labels look wrong.</Signs_SettingsCachedLabels_desc>
+  <Signs_SettingsWorldLabels>World-space labels (recommended)</Signs_SettingsWorldLabels>
+  <Signs_SettingsWorldLabels_desc>Print sign text into the map like the sign itself, so it costs nothing per frame. Text scales with the camera like a real sign. Turn off for the classic labels that keep a constant size on screen.</Signs_SettingsWorldLabels_desc>
+  <Signs_SettingsWorldLabelSize>World label size</Signs_SettingsWorldLabelSize>
+  <Signs_SettingsWorldLabelSize_desc>Label pixels per map cell. Higher values make the text smaller in the world.</Signs_SettingsWorldLabelSize_desc>
+</LanguageData>

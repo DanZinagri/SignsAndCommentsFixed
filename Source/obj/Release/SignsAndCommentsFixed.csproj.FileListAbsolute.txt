@@ -1,0 +1,5 @@
+E:\SteamLibrary\steamapps\common\RimWorld\Mods\SignsAndCommentsFixed\1.6\Assemblies\Signs.dll
+E:\SteamLibrary\steamapps\common\RimWorld\Mods\SignsAndCommentsFixed\Source\obj\Release\SignsAndCommentsFixed.csproj.AssemblyReference.cache
+E:\SteamLibrary\steamapps\common\RimWorld\Mods\SignsAndCommentsFixed\Source\obj\Release\SignsAndCommentsFixed.GeneratedMSBuildEditorConfig.editorconfig
+E:\SteamLibrary\steamapps\common\RimWorld\Mods\SignsAndCommentsFixed\Source\obj\Release\SignsAndCommentsFixed.csproj.CoreCompileInputs.cache
+E:\SteamLibrary\steamapps\common\RimWorld\Mods\SignsAndCommentsFixed\Source\obj\Release\Signs.dll

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ModMetaData>
+    <name>Signs and Comments Fixed</name>
+    <author>DanZinagri & Dark</author>
+    <packageId>Mumei.Signs</packageId>
+    <description>Fixed Sign and Comments mod, using rimworld built in colorpicker instead and configured impassible buildings to not throw errors
+You don't need the original mods
+
+Original description:
+Adds placeable signs that show ingame labels with your custom text, to organize things and plan ahead
+Also adds sign functionality to a number of vanilla objects
+
+Original mod by Dark: https://steamcommunity.com/sharedfiles/filedetails/?id=2576219203
+Editted from Continued version by FerrisCG https://steamcommunity.com/sharedfiles/filedetails/?id=3281950776</description>
+    <supportedVersions>
+        <li>1.6</li>
+    </supportedVersions>
+	<modDependencies>
+		<li>
+			<packageId>brrainz.harmony</packageId>
+			<displayName>Harmony</displayName>
+			<steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+		</li>
+	</modDependencies>
+	<loadAfter>
+		<li>brrainz.harmony</li>
+	</loadAfter>
+	<incompatibleWith>
+		<li>Dark.CommentsAndNoSigns</li>
+	</incompatibleWith>
+</ModMetaData>

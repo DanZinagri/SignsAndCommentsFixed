@@ -1,0 +1,54 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\SignsAndCommentsFixed\\Source\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BE66C977-4A90-94B6-7D18-6B8329A05B0E}|SignsAndCommentsFixed.csproj|e:\\steamlibrary\\steamapps\\common\\rimworld\\mods\\signsandcommentsfixed\\source\\comp_sign.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE66C977-4A90-94B6-7D18-6B8329A05B0E}|SignsAndCommentsFixed.csproj|solutionrelative:comp_sign.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{BE66C977-4A90-94B6-7D18-6B8329A05B0E}|SignsAndCommentsFixed.csproj|e:\\steamlibrary\\steamapps\\common\\rimworld\\mods\\signsandcommentsfixed\\source\\dialog_renamesign.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{BE66C977-4A90-94B6-7D18-6B8329A05B0E}|SignsAndCommentsFixed.csproj|solutionrelative:dialog_renamesign.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Dialog_RenameSign.cs",
+              "DocumentMoniker": "E:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\SignsAndCommentsFixed\\Source\\Dialog_RenameSign.cs",
+              "RelativeDocumentMoniker": "Dialog_RenameSign.cs",
+              "ToolTip": "E:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\SignsAndCommentsFixed\\Source\\Dialog_RenameSign.cs",
+              "RelativeToolTip": "Dialog_RenameSign.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-13T20:07:33.09Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Comp_Sign.cs",
+              "DocumentMoniker": "E:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\SignsAndCommentsFixed\\Source\\Comp_Sign.cs",
+              "RelativeDocumentMoniker": "Comp_Sign.cs",
+              "ToolTip": "E:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\SignsAndCommentsFixed\\Source\\Comp_Sign.cs",
+              "RelativeToolTip": "Comp_Sign.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-13T20:07:28.6Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

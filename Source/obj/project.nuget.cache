@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "nLa9n5afgyY=",
+  "success": true,
+  "projectFilePath": "E:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\SignsAndCommentsFixed\\Source\\SignsAndCommentsFixed.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\DanZinagri\\.nuget\\packages\\microsoft.netframework.referenceassemblies\\1.0.3\\microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
+    "C:\\Users\\DanZinagri\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net48\\1.0.3\\microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
