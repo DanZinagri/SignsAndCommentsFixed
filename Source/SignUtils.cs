@@ -3,49 +3,44 @@ using Verse;
 
 namespace Dark.Signs
 {
+    // Thin front for the per-map sign registry (MapComponent_SignLabels). No static state.
     public static class SignUtils
     {
-        // Every spawned sign comp, on every map. A handful of entries, so lookups here are
-        // cheap where a walk over listerThings or a room's contents would not be.
-        private static readonly List<Comp_Sign> signs = new List<Comp_Sign>();
+        private static readonly List<Comp_Sign> NoSigns = new List<Comp_Sign>();
+
+        public static MapComponent_SignLabels RegistryOf(Map map)
+        {
+            return map?.GetComponent<MapComponent_SignLabels>();
+        }
 
         public static void RegisterSign(Comp_Sign sign)
         {
-            if (!signs.Contains(sign))
-            {
-                signs.Add(sign);
-            }
+            RegistryOf(sign.parent.Map)?.Register(sign);
         }
 
-        public static void UnregisterSign(Comp_Sign sign)
+        public static void UnregisterSign(Comp_Sign sign, Map map)
         {
-            signs.Remove(sign);
+            RegistryOf(map)?.Unregister(sign);
         }
 
-        public static IEnumerable<Comp_Sign> SignsOn(Map map)
+        public static void MarkPending(Comp_Sign sign)
         {
-            for (int i = 0; i < signs.Count; i++)
-            {
-                Comp_Sign sign = signs[i];
-                if (sign.parent != null && sign.parent.Spawned && sign.parent.Map == map)
-                {
-                    yield return sign;
-                }
-            }
+            RegistryOf(sign.parent.Map)?.MarkPending(sign);
         }
 
-        // Regenerate every sign's world label (settings changed).
+        public static List<Comp_Sign> SignsOn(Map map)
+        {
+            return RegistryOf(map)?.Signs ?? NoSigns;
+        }
+
+        // Regenerate every sign's world label on every map (settings changed).
         public static void DirtyAllWorldLabels()
         {
-            for (int i = signs.Count - 1; i >= 0; i--)
+            if (Current.Game == null) return;
+            List<Map> maps = Find.Maps;
+            for (int i = 0; i < maps.Count; i++)
             {
-                Comp_Sign sign = signs[i];
-                if (sign.parent == null || !sign.parent.Spawned)
-                {
-                    signs.RemoveAt(i);
-                    continue;
-                }
-                sign.DirtyWorldLabel();
+                RegistryOf(maps[i])?.DirtyAllLabels();
             }
         }
 
@@ -54,24 +49,16 @@ namespace Dark.Signs
         // rebuild. This does one no-rebuild region lookup per room sign instead.
         public static void UpdateSignsOnRoomChange(Room room)
         {
-            if (signs.Count == 0 || room == null) return;
+            if (room == null) return;
             Map map = room.Map;
-            if (map == null) return;
-
-            for (int i = signs.Count - 1; i >= 0; i--)
+            List<Comp_Sign> signs = SignsOn(map);
+            for (int i = 0; i < signs.Count; i++)
             {
                 Comp_Sign sign = signs[i];
                 if (!sign.isRoomSign) continue;
-                Thing parent = sign.parent;
-                if (parent == null || !parent.Spawned)
-                {
-                    signs.RemoveAt(i);
-                    continue;
-                }
-                if (parent.Map != map) continue;
 
                 // No-rebuild lookup: this runs from inside the region/room updater.
-                Region region = map.regionGrid.GetRegionAt_NoRebuild_InvalidAllowed(parent.Position);
+                Region region = map.regionGrid.GetRegionAt_NoRebuild_InvalidAllowed(sign.parent.Position);
                 if (region != null && region.valid && region.Room == room)
                 {
                     sign.SetContentsFromRoom(room);

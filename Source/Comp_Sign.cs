@@ -206,7 +206,7 @@ namespace Dark.Signs
         public override void PostDeSpawn(Map map, DestroyMode mode = DestroyMode.Vanish)
         {
             base.PostDeSpawn(map, mode);
-            SignUtils.UnregisterSign(this);
+            SignUtils.UnregisterSign(this, map);
             // Position is still the last one; the section must drop the printed label.
             map?.mapDrawer.MapMeshDirty(parent.Position, SignDefOf.Signs_Labels);
             DisposeLabels();
@@ -360,7 +360,7 @@ namespace Dark.Signs
 
             if (!TryBakeWorldLabel())
             {
-                MapComponent_SignLabels.MarkPending(this);   // glyphs uploading; reprint next frame
+                SignUtils.MarkPending(this);   // glyphs uploading; reprint next frame
                 return;
             }
             Texture2D tex = worldLabel.Texture;
