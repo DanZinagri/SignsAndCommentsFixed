@@ -27,7 +27,7 @@ namespace Dark.Signs
         public static void PasteInto(Comp_Sign sign)
         {
             // New string instance so the target's line cache sees a change
-            sign.signContent = string.Copy(copiedString);
+            sign.signContent = copiedString == null ? null : new string(copiedString.ToCharArray());
             sign.fontSize = copiedFont;
             sign.hideLabelOverride = copiedHide;
             sign.labelColor = copiedColor;

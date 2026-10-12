@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <!-- Dirty bit for SectionLayer_SignLabels, so editing a sign regenerates only that layer. -->
+  <MapMeshFlagDef>
+    <defName>Signs_Labels</defName>
+  </MapMeshFlagDef>
+
+</Defs>

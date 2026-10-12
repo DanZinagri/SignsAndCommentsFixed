@@ -65,6 +65,10 @@ namespace Dark.Signs
                     pending.RemoveAt(i);
                     sign.DirtyWorldLabel();
                 }
+                else if (sign.WorldLabelUnbakeable)
+                {
+                    pending.RemoveAt(i);   // will never bake; drawn the GUI way instead
+                }
             }
         }
     }

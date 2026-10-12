@@ -314,7 +314,8 @@ namespace Dark.Signs
                     DirtyWorldLabel();
                 }
                 // The printed label is the label; nothing is drawn per frame, selected or not.
-                return;
+                // The exception is text the bake cannot compose: that is drawn the GUI way below.
+                if (!WorldLabelUnbakeable) return;
             }
 
             if (lines.Length == 0) return;   // graves, pen markers etc. with no text cost nothing
@@ -339,6 +340,9 @@ namespace Dark.Signs
             return parent.def == SignDefOf.Comment || !parent.Fogged();
         }
 
+        // True when this sign's text has characters the bake has no glyphs for.
+        public bool WorldLabelUnbakeable => worldLabel != null && worldLabel.Unbakeable;
+
         // Bake attempt for the map component's retry loop. True when ready.
         public bool TryBakeWorldLabel()
         {
@@ -360,7 +364,8 @@ namespace Dark.Signs
 
             if (!TryBakeWorldLabel())
             {
-                SignUtils.MarkPending(this);   // glyphs uploading; reprint next frame
+                // Atlas not ready: reprint next frame. Unbakeable text is left to DrawGUIOverlay.
+                if (!WorldLabelUnbakeable) SignUtils.MarkPending(this);
                 return;
             }
             Texture2D tex = worldLabel.Texture;
