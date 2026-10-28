@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
@@ -26,7 +27,9 @@ namespace Dark.Signs
         public Mod(ModContentPack content) : base(content)
         {
             GetSettings<Settings>();
-            new Harmony("Dark.Signs").PatchAll();
+            // The assembly is passed explicitly: on .NET 10 (1.7) the parameterless PatchAll() reads the calling
+            // assembly off the stack, which breaks when the JIT inlines the call (Harmony issue #395).
+            new Harmony("Dark.Signs").PatchAll(Assembly.GetExecutingAssembly());
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
