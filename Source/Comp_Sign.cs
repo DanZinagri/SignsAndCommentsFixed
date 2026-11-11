@@ -313,9 +313,15 @@ namespace Dark.Signs
                 {
                     DirtyWorldLabel();
                 }
+                // A label that gave up while the atlas was busy is tried again now and then;
+                // the reprint runs the bake, and the GUI label stays up until it lands.
+                if (worldLabel != null && worldLabel.RetryDue)
+                {
+                    DirtyWorldLabel();
+                }
                 // The printed label is the label; nothing is drawn per frame, selected or not.
                 // The exception is text the bake cannot compose: that is drawn the GUI way below.
-                if (!WorldLabelUnbakeable) return;
+                if (worldLabel == null || !worldLabel.DrawAsGui) return;
             }
 
             if (lines.Length == 0) return;   // graves, pen markers etc. with no text cost nothing

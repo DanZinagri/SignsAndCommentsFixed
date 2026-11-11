@@ -10,6 +10,8 @@ namespace Dark.Signs
     // texture composed on the CPU from the game's glyph atlas.
     // EnsureBaked returns false while the atlas is not available yet, and for text that
     // cannot be baked at all (see Unbakeable); callers retry or draw the GUI way.
+    // Each glyph is copied out of the atlas once (GlyphCache); after that, labels using it are
+    // composed from the copy and the atlas is only read for characters not seen before.
     // If anything in the bake throws, the class disables itself for the session.
     public class SignLabelTexture
     {
@@ -149,11 +151,20 @@ namespace Dark.Signs
         private float builtScale;
         private bool builtWorld;
 
-        // True when the current text has a character the backend has no pre-baked glyph for
-        // (anything outside its Latin set). Such a label cannot be composed here, so callers
-        // draw it the GUI way instead. Re-evaluated whenever the inputs change.
+        // True when the label cannot be composed: the text has a character the backend has no
+        // glyph for (permanent), or the atlas copy kept missing glyphs after every retry
+        // (temporary). Callers draw it the GUI way instead. Re-evaluated whenever the inputs
+        // change, and a temporary give-up is tried again after RetryAfterFrames.
         private bool unbakeable;
         public bool Unbakeable => unbakeable;
+
+        private const int RetryAfterFrames = 300;   // ~5 s at 60 fps
+        private int retryAtFrame = -1;              // -1: no retry scheduled
+        private bool retrying;                      // retry in progress; keep the GUI label up
+
+        public bool RetryDue => unbakeable && retryAtFrame >= 0 && Time.frameCount >= retryAtFrame;
+        // Draw this label the GUI way: it gave up, or a retry of a give-up has not landed yet.
+        public bool DrawAsGui => unbakeable || retrying;
 
         private int staleRetries;
         private const int MaxStaleRetries = 5;
@@ -171,6 +182,15 @@ namespace Dark.Signs
             else if (color != builtColor) reason = "color";
             else if (scale != builtScale) reason = "scale";
             else if (world != builtWorld) reason = "mode";
+            if (reason == null && RetryDue)
+            {
+                unbakeable = false;
+                retrying = true;
+                retryAtFrame = -1;
+                staleRetries = 0;
+                InvalidateAtlas();
+                reason = "retry";
+            }
             if (reason == null) return !unbakeable;
 
             try
@@ -224,15 +244,90 @@ namespace Dark.Signs
             ITextMeshProBackend backend = TextMeshProBackend.Current;
             if (backend == null) return false;   // text system not up yet; try again next frame
 
-            AtlasCopy atlas = TryGetAtlas(backend, unityFont.GameFontIndex);
-            if (atlas == null) return false;
+            // The atlas is only copied when some character has not been read before.
+            AtlasCopy atlas = null;
+            if (!AllCached(lines, unityFont.GameFontIndex))
+            {
+                atlas = TryGetAtlas(backend, unityFont.GameFontIndex);
+                if (atlas == null) return false;
+            }
 
             return Build(lines, font, color, scale, world, style, backend, atlas, fontSizePx, baseSize, reason);
+        }
+
+        // ---- Glyph copies (see GlyphCache) ----
+        // 1.7 composes every label from the backend's pre-baked glyphs at one size, so a copy
+        // is keyed by font and character only and serves every label size.
+
+        private static bool AllCached(string[] lines, int fontIndex)
+        {
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string s = lines[i];
+                for (int c = 0; c < s.Length; c++)
+                {
+                    if (!GlyphCache.TryGet(fontIndex, 0, 0, s[c], out _)) return false;
+                }
+            }
+            return true;
+        }
+
+        private enum GlyphResult { Ok, NotInFont, NotInCopy }
+
+        // The glyph copy for c, read out of the atlas copy the first time. NotInCopy means the
+        // copy predates the glyph's upload (retry with a fresh copy); nothing is cached then.
+        private static GlyphResult GetGlyph(ITextMeshProBackend backend, int fontIndex, char c, AtlasCopy atlas,
+            out CachedGlyph glyph)
+        {
+            if (GlyphCache.TryGet(fontIndex, 0, 0, c, out glyph)) return GlyphResult.Ok;
+            if (!backend.TryGetGlyph(fontIndex, c, out TmpGlyphMetrics m) || !m.found) return GlyphResult.NotInFont;
+
+            glyph = new CachedGlyph
+            {
+                visible = m.visible,
+                x0 = m.x0, y0 = m.y0, x1 = m.x1, y1 = m.y1,
+                advance = m.advanceX
+            };
+            if (m.visible)
+            {
+                if (atlas == null) return GlyphResult.NotInCopy;
+                // Glyph box in atlas texels, y counted up from the bottom row (v runs down).
+                float ax0 = m.u0 * atlas.width, ax1 = m.u1 * atlas.width;
+                float ayTop = (1f - m.v0) * atlas.height, ayBottom = (1f - m.v1) * atlas.height;
+                // One texel of margin so interpolation at the edges sees the same neighbours.
+                int ix0 = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(ax0, ax1)) - 1, 0, atlas.width);
+                int ix1 = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(ax0, ax1)) + 1, 0, atlas.width);
+                int iy0 = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(ayTop, ayBottom)) - 1, 0, atlas.height);
+                int iy1 = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(ayTop, ayBottom)) + 1, 0, atlas.height);
+                int w = ix1 - ix0, h = iy1 - iy0;
+                var alpha = new byte[w * h];
+                for (int y = 0; y < h; y++)
+                {
+                    int src = (iy0 + y) * atlas.width + ix0;
+                    for (int x = 0; x < w; x++) alpha[y * w + x] = atlas.pixels[src + x].a;
+                }
+                glyph.width = w;
+                glyph.height = h;
+                glyph.alpha = alpha;
+                glyph.sxA = ax0 - ix0;
+                glyph.sxB = ax1 - ix0;
+                glyph.syA = ayTop - iy0;
+                glyph.syB = ayBottom - iy0;
+                if (!glyph.HasInk())
+                {
+                    glyph = null;
+                    return GlyphResult.NotInCopy;
+                }
+            }
+            GlyphCache.Add(fontIndex, 0, 0, c, glyph);
+            return GlyphResult.Ok;
         }
 
         private void SetBuiltKeys(string[] lines, GameFont font, Color color, float scale, bool world)
         {
             unbakeable = false;
+            retrying = false;
+            retryAtFrame = -1;
             built = true;
             builtLines = lines;
             builtFont = font;
@@ -245,49 +340,12 @@ namespace Dark.Signs
         private struct Glyph
         {
             public float left, top, right, bottom;   // px, relative to anchor
-            public float u0, v0, u1, v1;             // atlas UVs, v measured from the top
+            public CachedGlyph source;
         }
 
         private static readonly List<Glyph> glyphs = new List<Glyph>();
         private static readonly List<Rect> bgs = new List<Rect>();
-
-        // Coverage of the atlas over a rectangle given in atlas texels (y counted up from the
-        // bottom row). Shrinking a pre-baked glyph to label size means one label pixel spans
-        // several texels, so they are averaged; a rectangle smaller than a texel is
-        // interpolated instead.
-        private static float AtlasCoverage(AtlasCopy atlas, float x0, float x1, float y0, float y1)
-        {
-            if (x1 - x0 <= 1f && y1 - y0 <= 1f)
-            {
-                float cx = Mathf.Clamp((x0 + x1) * 0.5f - 0.5f, 0f, atlas.width - 1);
-                float cy = Mathf.Clamp((y0 + y1) * 0.5f - 0.5f, 0f, atlas.height - 1);
-                int ix = (int)cx, iy = (int)cy;
-                int ix1 = Mathf.Min(ix + 1, atlas.width - 1), iy1 = Mathf.Min(iy + 1, atlas.height - 1);
-                float tx = cx - ix, ty = cy - iy;
-                float bottom = Mathf.Lerp(atlas.pixels[iy * atlas.width + ix].a, atlas.pixels[iy * atlas.width + ix1].a, tx);
-                float top = Mathf.Lerp(atlas.pixels[iy1 * atlas.width + ix].a, atlas.pixels[iy1 * atlas.width + ix1].a, tx);
-                return Mathf.Lerp(bottom, top, ty) / 255f;
-            }
-
-            int xa = Mathf.Max(0, Mathf.FloorToInt(x0)), xb = Mathf.Min(atlas.width, Mathf.CeilToInt(x1));
-            int ya = Mathf.Max(0, Mathf.FloorToInt(y0)), yb = Mathf.Min(atlas.height, Mathf.CeilToInt(y1));
-            float sum = 0f, area = 0f;
-            for (int y = ya; y < yb; y++)
-            {
-                float wy = Mathf.Min(y + 1f, y1) - Mathf.Max(y, y0);
-                if (wy <= 0f) continue;
-                int row = y * atlas.width;
-                for (int x = xa; x < xb; x++)
-                {
-                    float wx = Mathf.Min(x + 1f, x1) - Mathf.Max(x, x0);
-                    if (wx <= 0f) continue;
-                    float w = wx * wy;
-                    sum += atlas.pixels[row + x].a * w;
-                    area += w;
-                }
-            }
-            return area > 0f ? sum / (area * 255f) : 0f;
-        }
+        private static readonly List<CachedGlyph> lineGlyphs = new List<CachedGlyph>();
 
         // Returns false if the atlas copy turned out to predate our glyphs (caller retries next
         // frame), or if the text cannot be baked at all (see Unbakeable).
@@ -321,6 +379,7 @@ namespace Dark.Signs
             // to within rounding, and the difference keeps the text on the GUI's baseline.
             float ascentShift = ascentPx - bakedMetrics.ascent * k;
             bool missingGlyph = false;
+            int staleGlyphs = 0;   // glyphs the atlas copy did not hold yet
 
             glyphs.Clear();
             bgs.Clear();
@@ -346,35 +405,44 @@ namespace Dark.Signs
                     // Scaled-down glyphs can come out a pixel or two narrower or wider than the
                     // GUI measured, so centre the run inside the box the GUI size gave us.
                     float runWidth = 0f;
+                    lineGlyphs.Clear();
                     for (int c = 0; c < s.Length; c++)
                     {
-                        if (!backend.TryGetGlyph(fontIndex, s[c], out TmpGlyphMetrics m) || !m.found)
+                        GlyphResult result = GetGlyph(backend, fontIndex, s[c], atlas, out CachedGlyph cg);
+                        if (result == GlyphResult.NotInFont)
                         {
                             missingGlyph = true;
                             break;
                         }
-                        runWidth += m.advanceX * k;
+                        if (result == GlyphResult.NotInCopy)
+                        {
+                            staleGlyphs++;
+                            continue;
+                        }
+                        lineGlyphs.Add(cg);
+                        runWidth += cg.advance * k;
                     }
                     if (missingGlyph) break;
+                    if (staleGlyphs > 0) continue;   // retried below; no point laying out
 
                     float inner = (size.x - pad.left - pad.right) * scale;
                     float penX = (rx + pad.left + contentOffset.x) * scale + (inner - runWidth) * 0.5f;
                     float lineTop = (ry + pad.top + contentOffset.y) * scale + ascentShift;
-                    for (int c = 0; c < s.Length; c++)
+                    for (int c = 0; c < lineGlyphs.Count; c++)
                     {
-                        backend.TryGetGlyph(fontIndex, s[c], out TmpGlyphMetrics m);
-                        if (m.visible)
+                        CachedGlyph cg = lineGlyphs[c];
+                        if (cg.visible)
                         {
                             glyphs.Add(new Glyph
                             {
-                                left = penX + m.x0 * k,
-                                top = lineTop + m.y0 * k,
-                                right = penX + m.x1 * k,
-                                bottom = lineTop + m.y1 * k,
-                                u0 = m.u0, v0 = m.v0, u1 = m.u1, v1 = m.v1
+                                left = penX + cg.x0 * k,
+                                top = lineTop + cg.y0 * k,
+                                right = penX + cg.x1 * k,
+                                bottom = lineTop + cg.y1 * k,
+                                source = cg
                             });
                         }
-                        penX += m.advanceX * k;
+                        penX += cg.advance * k;
                     }
                 }
                 y += lineStep;
@@ -387,6 +455,36 @@ namespace Dark.Signs
                 bounds = new Rect(0f, 0f, 0f, 0f);
                 SetBuiltKeys(lines, font, color, scale, world);
                 unbakeable = true;
+                return false;
+            }
+
+            if (staleGlyphs > 0 && staleRetries < MaxStaleRetries)
+            {
+                // The atlas copy predates the upload of these glyphs. Recopy and retry next frame.
+                // Glyphs read successfully this time are already cached and won't need the atlas.
+                staleRetries++;
+                InvalidateAtlas();
+                if (Prefs.DevMode && totalBuilds < 10)
+                {
+                    Log.Message($"(Signs) label bake deferred: {staleGlyphs} glyph(s) missing from the atlas copy (retry {staleRetries})");
+                }
+                return false;
+            }
+            if (staleGlyphs > 0)
+            {
+                // Still missing after every retry. Never keep a label with letters missing:
+                // draw it the GUI way, and try the bake again after RetryAfterFrames.
+                bool wasRetry = retrying;
+                DestroyTexture();
+                bounds = new Rect(0f, 0f, 0f, 0f);
+                SetBuiltKeys(lines, font, color, scale, world);
+                unbakeable = true;
+                retryAtFrame = Time.frameCount + RetryAfterFrames;
+                if (Prefs.DevMode && !wasRetry)   // once per label, not every retry
+                {
+                    Log.Message($"(Signs) label bake gave up: {staleGlyphs} glyph(s) missing from the atlas copy " +
+                        $"for \"{allText}\"; drawing it as a GUI label, retrying every {RetryAfterFrames} frames");
+                }
                 return false;
             }
 
@@ -419,40 +517,32 @@ namespace Dark.Signs
                         px[yy * W + xx] = bg;
             }
 
-            int staleGlyphs = 0;
             for (int g = 0; g < glyphs.Count; g++)
             {
                 Glyph gl = glyphs[g];
                 float gw = gl.right - gl.left, gh = gl.bottom - gl.top;
                 if (gw <= 0f || gh <= 0f) continue;
-                bool glyphHit = false;
+                CachedGlyph src = gl.source;
                 int x0 = Mathf.Max(0, Mathf.FloorToInt(gl.left - ox));
                 int x1 = Mathf.Min(W, Mathf.CeilToInt(gl.right - ox));
                 int y0 = Mathf.Max(0, Mathf.FloorToInt(gl.top - oy));
                 int y1 = Mathf.Min(H, Mathf.CeilToInt(gl.bottom - oy));
-                float du = gl.u1 - gl.u0, dv = gl.v1 - gl.v0;
                 for (int yy = y0; yy < y1; yy++)
                 {
                     // This label pixel's span across the glyph, as fractions of its height.
                     float fy0 = Mathf.Clamp01((yy + oy - gl.top) / gh);
                     float fy1 = Mathf.Clamp01((yy + 1f + oy - gl.top) / gh);
                     if (fy1 <= fy0) continue;
-                    // Atlas v runs down from the top; the copy's rows run up from the bottom.
-                    float sy0 = (1f - (gl.v0 + dv * fy1)) * atlas.height;
-                    float sy1 = (1f - (gl.v0 + dv * fy0)) * atlas.height;
                     for (int xx = x0; xx < x1; xx++)
                     {
                         float fx0 = Mathf.Clamp01((xx + ox - gl.left) / gw);
                         float fx1 = Mathf.Clamp01((xx + 1f + ox - gl.left) / gw);
                         if (fx1 <= fx0) continue;
-                        float sx0 = (gl.u0 + du * fx0) * atlas.width;
-                        float sx1 = (gl.u0 + du * fx1) * atlas.width;
                         // Scale by how much of this pixel the glyph actually covers at its edges.
-                        float a = AtlasCoverage(atlas, sx0, sx1, sy0, sy1)
+                        float a = src.Coverage(fx0, fx1, fy0, fy1)
                             * ((fx1 - fx0) * gw) * ((fy1 - fy0) * gh) * textColor.a;
                         if (a <= 0f) continue;
                         if (a > 1f) a = 1f;
-                        glyphHit = true;
                         ref Color dst = ref px[yy * W + xx];
                         float outA = a + dst.a * (1f - a);
                         float r = (textColor.r * a + dst.r * dst.a * (1f - a)) / outA;
@@ -461,19 +551,6 @@ namespace Dark.Signs
                         dst = new Color(r, gg, bb, outA);
                     }
                 }
-                if (!glyphHit) staleGlyphs++;
-            }
-
-            if (staleGlyphs > 0 && staleRetries < MaxStaleRetries)
-            {
-                // The atlas copy predates the upload of these glyphs. Recopy and retry next frame.
-                staleRetries++;
-                InvalidateAtlas();
-                if (Prefs.DevMode && totalBuilds < 10)
-                {
-                    Log.Message($"(Signs) label bake deferred: {staleGlyphs}/{glyphs.Count} glyph(s) missing from the atlas copy (retry {staleRetries})");
-                }
-                return false;
             }
 
             // Upload, flipping rows because Texture2D row 0 is the bottom.
@@ -505,7 +582,8 @@ namespace Dark.Signs
             if (Prefs.DevMode && (totalBuilds <= 3 || totalBuilds % 500 == 0))
             {
                 Log.Message($"(Signs) label bake #{totalBuilds} ({reason}, {(world ? "world" : "screen")}): font={unityFont.name} sizePx={fontSizePx} scale={scale} " +
-                    $"atlas={atlas.width}x{atlas.height} readable={atlas.readable} glyphs={glyphs.Count}/{allText.Length} stale={staleGlyphs} " +
+                    $"atlas={(atlas == null ? "not needed" : $"{atlas.width}x{atlas.height} readable={atlas.readable}")} " +
+                    $"glyphs={glyphs.Count}/{allText.Length} cached={GlyphCache.Count} " +
                     $"tex={W}x{H} bounds={bounds} bg={(Color)bg}");
             }
             return true;
@@ -531,6 +609,8 @@ namespace Dark.Signs
             built = false;
             builtLines = null;
             unbakeable = false;
+            retrying = false;
+            retryAtFrame = -1;
         }
     }
 }

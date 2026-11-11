@@ -1,35 +1,54 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- One project, two builds:
+       net48   -> 1.6/Assemblies, compiled against the 1.6 reference assemblies (Unity font atlas).
+       net10.0 -> 1.7/Assemblies, compiled against the 1.7 game root (Waylith / UnityStubs).
+       Everything is shared except the label baker, which reads a different glyph atlas per
+       version: SignLabelTexture.cs (1.7) and SignLabelTexture_1.6.cs (1.6). -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net48;net10.0</TargetFrameworks>
     <AssemblyName>Signs</AssemblyName>
     <RootNamespace>Dark.Signs</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <OutputPath>..\1.7\Assemblies\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- AppendTargetFrameworkToOutputPath=false also flattens obj\, so give each target its own
+         intermediate folder or the parallel net48/net10 builds overwrite each other. -->
+    <IntermediateOutputPath>obj\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
     <GenerateDependencyFile>false</GenerateDependencyFile>
     <DebugType>none</DebugType>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Nullable>disable</Nullable>
+    <RimWorld16Ref>C:\Users\DanZinagri\Documents\RimWorldModding\RimWorld-1.6-Ref</RimWorld16Ref>
+    <RimWorld17Root>E:\SteamLibrary\steamapps\common\RimWorld</RimWorld17Root>
+    <HarmonyRoot>E:\SteamLibrary\steamapps\workshop\content\294100\2009463077</HarmonyRoot>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>E:\SteamLibrary\steamapps\workshop\content\294100\2009463077\1.7\Assemblies\0Harmony.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\Assembly-CSharp.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <!-- Graphics.DrawMesh has overloads taking engine types, so the compiler needs the engine assembly to pick one. -->
-    <Reference Include="Waylith">
-      <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\Waylith.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="UnityStubs">
-      <HintPath>E:\SteamLibrary\steamapps\common\RimWorld\UnityStubs.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <OutputPath>..\1.6\Assemblies\</OutputPath>
+    <FrameworkPathOverride>$(RimWorld16Ref)</FrameworkPathOverride>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <OutputPath>..\1.7\Assemblies\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Compile Remove="SignLabelTexture.cs" />
+    <Reference Include="Assembly-CSharp"><HintPath>$(RimWorld16Ref)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(RimWorld16Ref)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>$(RimWorld16Ref)\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(RimWorld16Ref)\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="netstandard"><HintPath>$(RimWorld16Ref)\netstandard.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(HarmonyRoot)\1.6\Assemblies\0Harmony.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Remove="SignLabelTexture_1.6.cs" />
+    <Reference Include="Assembly-CSharp"><HintPath>$(RimWorld17Root)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <!-- Graphics.DrawMesh has overloads taking engine types, so the compiler needs the engine assembly to pick one. -->
+    <Reference Include="Waylith"><HintPath>$(RimWorld17Root)\Waylith.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityStubs"><HintPath>$(RimWorld17Root)\UnityStubs.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(HarmonyRoot)\1.7\Assemblies\0Harmony.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
 </Project>
