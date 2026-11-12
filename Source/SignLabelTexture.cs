@@ -560,22 +560,24 @@ namespace Dark.Signs
                 int src = yy * W, dstRow = (H - 1 - yy) * W;
                 for (int xx = 0; xx < W; xx++) upload[dstRow + xx] = px[src + xx];
             }
-            if (tex == null)
+            // Every bake goes into a new texture. Rewriting the pixels of the one the world
+            // material already samples is not picked up reliably on 1.7: the map kept drawing
+            // the old label until the camera zoomed. A new texture changes the material's
+            // texture slot, which makes the renderer rebind it. Reinitialize is avoided for
+            // the same reason, and because on 1.7 it also drops the texture to one mip level.
+            // Mipmaps so the world-space quad stays legible when zoomed out.
+            var fresh = new Texture2D(W, H, TextureFormat.RGBA32, true)
             {
-                // Mipmaps so the world-space quad stays legible when zoomed out.
-                tex = new Texture2D(W, H, TextureFormat.RGBA32, true)
-                {
-                    name = "SignLabel",
-                    filterMode = FilterMode.Trilinear,
-                    wrapMode = TextureWrapMode.Clamp
-                };
-            }
-            else if (tex.width != W || tex.height != H)
-            {
-                tex.Reinitialize(W, H);   // same object, so the world material stays valid
-            }
-            tex.SetPixels32(upload);
-            tex.Apply(true, false);
+                name = "SignLabel",
+                filterMode = FilterMode.Trilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            fresh.SetPixels32(upload);
+            fresh.Apply(true, false);
+            Texture2D old = tex;
+            tex = fresh;
+            if (worldMaterial != null) worldMaterial.mainTexture = tex;
+            if (old != null) UnityEngine.Object.Destroy(old);
             SetBuiltKeys(lines, font, color, scale, world);
 
             totalBuilds++;
