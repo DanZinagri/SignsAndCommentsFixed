@@ -28,6 +28,11 @@ namespace Dark.Signs
             RegistryOf(sign.parent.Map)?.MarkPending(sign);
         }
 
+        public static void WatchRetry(Comp_Sign sign)
+        {
+            RegistryOf(sign.parent.Map)?.WatchRetry(sign);
+        }
+
         public static List<Comp_Sign> SignsOn(Map map)
         {
             return RegistryOf(map)?.Signs ?? NoSigns;

@@ -97,21 +97,40 @@ namespace Dark.Signs
         public string signContent
         {
             get => hasEpitaph ? (string)EpitaphInscriptionProperty.GetValue(EpitaphComp) : _signContent;
-            set => _signContent = value;
+            set
+            {
+                bool changed = value != _signContent;
+                _signContent = value;
+                if (changed) DirtyWorldLabel();
+            }
         }
 
+        // Changes dirty the printed label right here. They used to be noticed only in
+        // DrawGUIOverlay, which other mods can stop from running: Toggleable Overlays skips
+        // ThingWithComps.DrawGUIOverlay unless the camera is fully zoomed in, so edits only
+        // showed up after zooming in.
         private GameFont _fontSize = GameFont.Tiny;
         public GameFont fontSize
         {
             get => _fontSize;
-            set => _fontSize = value;
+            set
+            {
+                bool changed = value != _fontSize;
+                _fontSize = value;
+                if (changed) DirtyWorldLabel();
+            }
         }
 
         private Color _labelColor = Settings.globalLabelColor;
         public Color labelColor
         {
             get => _labelColor;
-            set => _labelColor = value;
+            set
+            {
+                bool changed = value != _labelColor;
+                _labelColor = value;
+                if (changed) DirtyWorldLabel();
+            }
         }
 
         // ---- Label line cache ----
@@ -307,7 +326,9 @@ namespace Dark.Signs
             // If baking ever failed this session, fall through to the plain GUI labels.
             if (Settings.worldSpaceLabels && !SignLabelTexture.Broken)
             {
-                // The printed label is static; reprint if anything it shows has changed.
+                // The printed label is static; reprint if anything it shows has changed. Our own
+                // setters already dirty it; this catches text changed elsewhere (an epitaph
+                // comp's inscription). It doesn't run while another mod suppresses overlays.
                 if (!ReferenceEquals(lines, printedLines) || fontSize != printedFont
                     || labelColor != printedColor || hideLabelOverride != printedHidden)
                 {
@@ -333,7 +354,7 @@ namespace Dark.Signs
 
         public void DirtyWorldLabel()
         {
-            if (parent.Spawned)
+            if (parent != null && parent.Spawned)
             {
                 parent.Map.mapDrawer.MapMeshDirty(parent.Position, SignDefOf.Signs_Labels);
             }
@@ -348,6 +369,10 @@ namespace Dark.Signs
 
         // True when this sign's text has characters the bake has no glyphs for.
         public bool WorldLabelUnbakeable => worldLabel != null && worldLabel.Unbakeable;
+
+        // A give-up that will be retried later (atlas churn, not a missing glyph).
+        public bool WorldLabelRetryScheduled => worldLabel != null && worldLabel.RetryScheduled;
+        public bool WorldLabelRetryDue => worldLabel != null && worldLabel.RetryDue;
 
         // Bake attempt for the map component's retry loop. True when ready.
         public bool TryBakeWorldLabel()
@@ -370,8 +395,10 @@ namespace Dark.Signs
 
             if (!TryBakeWorldLabel())
             {
-                // Atlas not ready: reprint next frame. Unbakeable text is left to DrawGUIOverlay.
+                // Atlas not ready: reprint next frame. Unbakeable text is left to DrawGUIOverlay,
+                // and a give-up that will be retried is watched by the map component.
                 if (!WorldLabelUnbakeable) SignUtils.MarkPending(this);
+                else if (WorldLabelRetryScheduled) SignUtils.WatchRetry(this);
                 return;
             }
             Texture2D tex = worldLabel.Texture;
@@ -521,7 +548,11 @@ namespace Dark.Signs
                 hotKey = KeyBindingDefOf.Misc3,
                 icon = TexCommand.ForbidOff,
                 isActive = () => !hideLabelOverride,
-                toggleAction = () => hideLabelOverride = !hideLabelOverride
+                toggleAction = () =>
+                {
+                    hideLabelOverride = !hideLabelOverride;
+                    DirtyWorldLabel();
+                }
             };
 
             sizeGizmo = new Command_Action

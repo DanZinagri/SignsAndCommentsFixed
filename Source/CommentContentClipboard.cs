@@ -31,6 +31,7 @@ namespace Dark.Signs
             sign.fontSize = copiedFont;
             sign.hideLabelOverride = copiedHide;
             sign.labelColor = copiedColor;
+            sign.DirtyWorldLabel();   // the hide flag is a plain field, so dirty explicitly
         }
 
         // Built once per sign and cached by Comp_Sign; gizmos are requested every frame while the sign is selected.

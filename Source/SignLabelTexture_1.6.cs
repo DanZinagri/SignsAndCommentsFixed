@@ -194,6 +194,7 @@ namespace Dark.Signs
         private int retryAtFrame = -1;              // -1: no retry scheduled
         private bool retrying;                      // retry in progress; keep the GUI label up
 
+        public bool RetryScheduled => unbakeable && retryAtFrame >= 0;
         public bool RetryDue => unbakeable && retryAtFrame >= 0 && Time.frameCount >= retryAtFrame;
         // Draw this label the GUI way: it gave up, or a retry of a give-up has not landed yet.
         public bool DrawAsGui => unbakeable || retrying;
@@ -218,6 +219,13 @@ namespace Dark.Signs
                 retryAtFrame = -1;
                 staleRetries = 0;
                 rerequest = true;
+                reason = "retry";
+            }
+            // A retry whose first attempt had to wait a frame is still running: the keys match
+            // the give-up, but there is no texture yet. Keep going until it bakes or gives up
+            // again (both clear the flag); answering "done" here left the label on the GUI path.
+            else if (reason == null && retrying)
+            {
                 reason = "retry";
             }
             if (reason == null) return !unbakeable;

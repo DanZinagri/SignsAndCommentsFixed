@@ -31,6 +31,19 @@ namespace Dark.Signs
         {
             signs.Remove(sign);
             pending.Remove(sign);
+            retryWatch.Remove(sign);
+        }
+
+        // Labels that gave up while the font atlas was busy, waiting for their timed retry.
+        // Watched here rather than in DrawGUIOverlay, which other mods can stop from running.
+        private readonly List<Comp_Sign> retryWatch = new List<Comp_Sign>();
+
+        public void WatchRetry(Comp_Sign sign)
+        {
+            if (!retryWatch.Contains(sign))
+            {
+                retryWatch.Add(sign);
+            }
         }
 
         public void MarkPending(Comp_Sign sign)
@@ -51,6 +64,20 @@ namespace Dark.Signs
 
         public override void MapComponentUpdate()
         {
+            for (int i = retryWatch.Count - 1; i >= 0; i--)
+            {
+                Comp_Sign sign = retryWatch[i];
+                if (!sign.parent.Spawned || !sign.WorldLabelRetryScheduled)
+                {
+                    retryWatch.RemoveAt(i);   // despawned, rebaked, or edited since
+                }
+                else if (sign.WorldLabelRetryDue)
+                {
+                    retryWatch.RemoveAt(i);
+                    sign.DirtyWorldLabel();   // the reprint runs the retry bake
+                }
+            }
+
             if (pending.Count == 0) return;
             for (int i = pending.Count - 1; i >= 0; i--)
             {
@@ -67,7 +94,8 @@ namespace Dark.Signs
                 }
                 else if (sign.WorldLabelUnbakeable)
                 {
-                    pending.RemoveAt(i);   // will never bake; drawn the GUI way instead
+                    pending.RemoveAt(i);   // gave up; drawn the GUI way instead
+                    if (sign.WorldLabelRetryScheduled) WatchRetry(sign);
                 }
             }
         }

@@ -162,6 +162,7 @@ namespace Dark.Signs
         private int retryAtFrame = -1;              // -1: no retry scheduled
         private bool retrying;                      // retry in progress; keep the GUI label up
 
+        public bool RetryScheduled => unbakeable && retryAtFrame >= 0;
         public bool RetryDue => unbakeable && retryAtFrame >= 0 && Time.frameCount >= retryAtFrame;
         // Draw this label the GUI way: it gave up, or a retry of a give-up has not landed yet.
         public bool DrawAsGui => unbakeable || retrying;
@@ -189,6 +190,13 @@ namespace Dark.Signs
                 retryAtFrame = -1;
                 staleRetries = 0;
                 InvalidateAtlas();
+                reason = "retry";
+            }
+            // A retry whose first attempt had to wait a frame is still running: the keys match
+            // the give-up, but there is no texture yet. Keep going until it bakes or gives up
+            // again (both clear the flag); answering "done" here left the label on the GUI path.
+            else if (reason == null && retrying)
+            {
                 reason = "retry";
             }
             if (reason == null) return !unbakeable;
@@ -560,12 +568,9 @@ namespace Dark.Signs
                 int src = yy * W, dstRow = (H - 1 - yy) * W;
                 for (int xx = 0; xx < W; xx++) upload[dstRow + xx] = px[src + xx];
             }
-            // Every bake goes into a new texture. Rewriting the pixels of the one the world
-            // material already samples is not picked up reliably on 1.7: the map kept drawing
-            // the old label until the camera zoomed. A new texture changes the material's
-            // texture slot, which makes the renderer rebind it. Reinitialize is avoided for
-            // the same reason, and because on 1.7 it also drops the texture to one mip level.
-            // Mipmaps so the world-space quad stays legible when zoomed out.
+            // Every bake goes into a new texture rather than resizing the old one: on 1.7
+            // Reinitialize drops the texture to one mip level. Mipmaps keep the world-space
+            // quad legible when zoomed out.
             var fresh = new Texture2D(W, H, TextureFormat.RGBA32, true)
             {
                 name = "SignLabel",
